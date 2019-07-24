@@ -220,40 +220,21 @@ class Game:
                     gobb.circle.y = event.pos[1] + self.selected_offset_y
                     set_board_top(self.board)
 
+################################################################################
+################################################################################
+
+    ###
+    ### Write this function
+    ###s
 
     def _get_movetree(self, setup, k=0):
-        if k == self.settings.KMAX:
-            win,clr = check_for_win(setup[0])
-            if win:
-                if clr==self.player_colors[1]:
-                    return (1,  setup)
-                else:
-                    return (-1, setup)
-            else:
+
                 return (0, setup)
 
-        if k == 0:
-            setuplist = get_current_moves(setup)
-            scoresetups = [self._get_movetree(s, k=k+1) for s in setuplist]
-            return max(scoresetups, key=lambda x: x[0])
 
-        else:
+################################################################################
+################################################################################
 
-            win,clr = check_for_win(setup[0])
-            if win:
-                if clr==self.player_colors[1]:
-                    return (1,  setup)
-                else:
-                    return (-1, setup)
-            else:
-                setuplist = get_current_moves(setup)
-                scoresetups = [self._get_movetree(s, k=k+1) for s in setuplist]
-                if k%2:
-                    f = min
-                else:
-                    f = max
-                chosen_move = f(scoresetups, key=lambda x: x[0])
-                return (chosen_move[0], setup)
 
 if __name__ == '__main__':
     ai = Game()
