@@ -290,7 +290,8 @@ class Game:
             oldstables  = copy_stables(self.stable)
             oldturn     = self.turn
             chosen_move = self._get_movetree((oldboard, oldstables, oldturn))
-
+            if self.settings.PRINT:
+                print("move score:", chosen_move[0])
             self.board  = self._copy_gobbler_board(chosen_move[1][0])
             self.stable = self._copy_stable_from_board(chosen_move[1][0])
             self.turn   = not self.turn
@@ -409,29 +410,26 @@ class Game:
 
         if k == 0:
             setuplist = get_current_moves(setup)
-            scoresetups = [self._get_movetree(setup=s, k=k+1) for s in setuplist]
+            scoresetups = [self._get_movetree(s, k=k+1) for s in setuplist]
             return max(scoresetups, key=lambda x: x[0])
 
         else:
-            oldboard     = setup[0]
-            oldstables   = setup[1]
-            oldturn      = setup[2]
 
-            win,clr = check_for_win(oldboard)
+            win,clr = check_for_win(setup[0])
             if win:
                 if clr==self.player_colors[1]:
-                    return (1,  (oldboard,oldstables,oldturn))
+                    return (1,  setup)
                 else:
-                    return (-1, (oldboard,oldstables,oldturn))
+                    return (-1, setup)
             else:
-                setuplist = get_current_moves((oldboard,oldstables,oldturn))
-                scoresetups = [self._get_movetree(setup=s, k=k+1) for s in setuplist]
+                setuplist = get_current_moves(setup)
+                scoresetups = [self._get_movetree(s, k=k+1) for s in setuplist]
                 if k%2:
                     f = min
                 else:
                     f = max
                 chosen_move = f(scoresetups, key=lambda x: x[0])
-                return (chosen_move[0], (oldboard,oldstables,oldturn))
+                return (chosen_move[0], setup)
 
 if __name__ == '__main__':
     ai = Game()

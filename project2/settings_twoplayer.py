@@ -10,5 +10,3 @@ class Settings:
         self.BOARDLINE_SIZE = 5
         self.RAD = int(min(self.SCREEN_WIDTH, self.SCREEN_HEIGHT) / 30.0)
         self.PRINT = False
-        self.COMPUTER = False
-        self.KMAX = 3

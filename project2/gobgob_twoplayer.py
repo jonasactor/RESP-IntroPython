@@ -66,13 +66,6 @@ def draw_board_text(board):
             print(i, j, ':\t', board[i][j])
     print('\n')
 
-def draw_stable_text(stable):
-    for i, st in enumerate(stable):
-        print("Color", i, end=' ')
-        for piece in st:
-            print(piece, end=' ')
-        print('')
-
 def set_square_top(sq):
     maxsize = -1
     for g in sq:
@@ -84,20 +77,11 @@ def set_square_top(sq):
         else:
             g.on_top = False
 
-def set_piece_top(piece, sq):
-    for g in sq:
-        if piece == g:
-            piece.on_top = g.on_top
-
 def set_board_top(board):
     for i, row in enumerate(board):
         for j, sq in enumerate(row):
             set_square_top(sq)
 
-def set_stable_top(board, stable):
-    for c, st in enumerate(stable):
-        for piece in st:
-            set_piece_top(piece, board[piece.row][piece.col])
 
 def valid_placement(board, gobb, sqidx):
     sq = board[sqidx[0]][sqidx[1]]
@@ -107,75 +91,6 @@ def valid_placement(board, gobb, sqidx):
         if g.size >= gobb.size:
             return False
     return True
-
-def score_board(board):
-    return int(check_for_win(board)[0])
-
-def remove_duplicate_setups(setuplist):
-    cleanlist = []
-    for s in setuplist:
-        already_present = False
-        for c in cleanlist:
-            if c[0]==s[0]:
-                already_present = True
-        if not already_present:
-            cleanlist.append(s)
-    return cleanlist
-
-def get_current_moves(setup):
-    board      = setup[0]
-    stables    = setup[1]
-    turn       = setup[2]
-    new_setups = []            # tuples of (board, stables, turn)
-
-    for g in stables[turn]:
-        if g.on_top:
-            for i, row in enumerate(board):
-                for j, sq in enumerate(row):
-
-                    # make memory copies
-                    gob = g.duplicate()
-                    oldboard  = copy_board(board)
-                    oldstable = copy_stables(stables)
-
-                    # check if placeable
-                    can_place = valid_placement(oldboard, gob, (i,j))
-                    if can_place and not (gob.row == i and gob.col == j):
-
-                        if gob.on_board: #moving a piece already on the board
-                            newboard = copy_board(oldboard)
-                            newboard[gob.row][gob.col].remove(gob)
-                            if check_for_win(newboard)[0]: # endgame by lifting
-                                set_board_top(newboard)
-                                newstable = copy_stables(oldstable)
-                                newstable[turn].remove(g)
-                                newstable[turn].append(newgob)
-                                set_stable_top(newboard, newstable)
-                                new_setups.append((newboard, newstable, not turn))
-                            else: # can complete move without ending game
-                                newgob = Piece(gob.color, gob.size, True, True, i, j)
-                                newboard = copy_board(oldboard)
-                                newboard[g.row][g.col].remove(g)
-                                newboard[i][j].append(newgob)
-                                set_board_top(newboard)
-                                newstable = copy_stables(oldstable)
-                                newstable[turn].remove(g)
-                                newstable[turn].append(newgob)
-                                set_stable_top(newboard, newstable)
-                                new_setups.append((newboard, newstable, not turn))
-
-                        else: # piece being moved is not on the board
-                            newgob = Piece(gob.color, gob.size, True, True, i, j)
-                            newboard = copy_board(oldboard)
-                            newboard[i][j].append(newgob)
-                            set_board_top(newboard)
-                            newstable = copy_stables(oldstable)
-                            newstable[turn].remove(gob)
-                            newstable[turn].append(newgob)
-                            set_stable_top(newboard, newstable)
-                            new_setups.append((newboard, newstable, not turn))
-
-    return remove_duplicate_setups(new_setups)
 
 
 
@@ -228,35 +143,6 @@ class Game:
     def _update_win_status(self, win):
         self.not_won = not win
 
-
-
-    def _copy_gobbler_board(self, board):
-        newboard = [ [ [],[],[] ], [ [],[],[] ], [ [],[],[] ] ]
-        for i, row in enumerate(board):
-            for j, sq in enumerate(row):
-                for gob in sq:
-                    gobgob = gob.duplicate()
-                    newboard[i][j].append(gobgob)
-        return newboard
-
-    def _copy_stable_from_board(self, board):
-        newstable = [ [], [] ]
-        for idx, c in enumerate(self.player_colors):
-            newstable[idx] = self.make_stable(c)
-
-        for i, row in enumerate(board):
-            for j, sq in enumerate(row):
-                for gobpiece in sq:
-                    gobgob = gobpiece.to_gobbler(self)
-                    for g in newstable[gobgob.color == self.player_colors[1]]:
-                        if g.size == gobgob.size and gobgob.on_board:
-                            newstable[gobgob.color == self.player_colors[1]].remove(g)
-                            newstable[gobgob.color == self.player_colors[1]].append(gobgob)
-                            break
-        return newstable
-
-
-
     def _draw_board_lines(self):
         scr = min(self.settings.SCREEN_WIDTH, self.settings.SCREEN_HEIGHT)
         cx = self.settings.SCREEN_WIDTH  / 2.0
@@ -267,7 +153,6 @@ class Game:
             pygame.draw.line(self.screen, self.settings.WHITE, (cx+(i+0.5)*ox, cy-1.5*oy), (cx+(i+0.5)*ox, cy+1.5*oy), self.settings.BOARDLINE_SIZE )
         for j in range(-1,1):
             pygame.draw.line(self.screen, self.settings.WHITE, (cx-1.5*ox, cy+(j+0.5)*oy), (cx+1.5*ox, cy+(j+0.5)*oy), self.settings.BOARDLINE_SIZE )
-
 
     def _draw_gobblers(self):
         for g in self.stable[not self.turn]:
@@ -282,20 +167,6 @@ class Game:
         self._draw_board_lines()
         self._draw_gobblers()
         pygame.display.update()
-
-
-    def _play_ai(self):
-        if self.not_won:
-            oldboard    = copy_board(self.board)
-            oldstables  = copy_stables(self.stable)
-            oldturn     = self.turn
-            chosen_move = self._get_movetree((oldboard, oldstables, oldturn))
-
-            self.board  = self._copy_gobbler_board(chosen_move[1][0])
-            self.stable = self._copy_stable_from_board(chosen_move[1][0])
-            self.turn   = not self.turn
-
-
 
     def _get_square(self, event):
         scr = min(self.settings.SCREEN_WIDTH, self.settings.SCREEN_HEIGHT)
@@ -363,21 +234,6 @@ class Game:
                             self.turn = not self.turn
                             self.selected = None
 
-                            if self.settings.COMPUTER:
-
-                                self.turn = not self.turn
-                                self._draw()
-                                self.turn = not self.turn
-                                if self.settings.PRINT:
-                                    draw_board_text(self.board)
-                                win, clr = check_for_win(self.board)
-                                if win:
-                                    print("Congratulations: Player ", clr, "has won!")
-                                    self._update_win_status(win)
-                                else:
-                                    self._play_ai()
-
-
                         else:  # not successful placement - revert to previous position
                             gobb.circle.centerx = gobb.old_x
                             gobb.circle.centery = gobb.old_y
@@ -395,43 +251,6 @@ class Game:
                     gobb.circle.y = event.pos[1] + self.selected_offset_y
                     set_board_top(self.board)
 
-
-    def _get_movetree(self, setup, k=0):
-        if k == self.settings.KMAX:
-            win,clr = check_for_win(setup[0])
-            if win:
-                if clr==self.player_colors[1]:
-                    return (1,  setup)
-                else:
-                    return (-1, setup)
-            else:
-                return (0, setup)
-
-        if k == 0:
-            setuplist = get_current_moves(setup)
-            scoresetups = [self._get_movetree(setup=s, k=k+1) for s in setuplist]
-            return max(scoresetups, key=lambda x: x[0])
-
-        else:
-            oldboard     = setup[0]
-            oldstables   = setup[1]
-            oldturn      = setup[2]
-
-            win,clr = check_for_win(oldboard)
-            if win:
-                if clr==self.player_colors[1]:
-                    return (1,  (oldboard,oldstables,oldturn))
-                else:
-                    return (-1, (oldboard,oldstables,oldturn))
-            else:
-                setuplist = get_current_moves((oldboard,oldstables,oldturn))
-                scoresetups = [self._get_movetree(setup=s, k=k+1) for s in setuplist]
-                if k%2:
-                    f = min
-                else:
-                    f = max
-                chosen_move = f(scoresetups, key=lambda x: x[0])
-                return (chosen_move[0], (oldboard,oldstables,oldturn))
 
 if __name__ == '__main__':
     ai = Game()
