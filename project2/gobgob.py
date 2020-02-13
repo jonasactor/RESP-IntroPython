@@ -255,6 +255,8 @@ class Game:
                 chosen_move = f(scoresetups, key=lambda x: x[0])
                 return (chosen_move[0], setup)
 
+
+
 if __name__ == '__main__':
     ai = Game()
     ai.run_game()
